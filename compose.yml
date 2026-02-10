@@ -1,0 +1,107 @@
+version: "3"
+services:
+  loki:
+    container_name: loki
+    image: grafana/loki:main
+    networks:
+      - grafana-monitoring
+    volumes:
+      - ./data/loki:/etc/loki
+      - ./configs/loki.yml:/etc/loki/local-config.yaml:ro
+    ports:
+      - "3100:3100"
+    develop:
+      watch:
+        - action: sync
+          path: ./configs/loki.yml
+          target: /etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  promtail:
+    container_name: promtail
+    depends_on: 
+      - loki
+    image: grafana/promtail:main
+    networks:
+      - grafana-monitoring
+    volumes:
+      - /var/log:/var/log
+      - ./data/promtail:/etc/promtail
+      - ./configs/promtail.yml:/etc/promtail/promtail-config.yml:ro
+    ports:
+      - "1514:1514" # Required: when sending syslogs
+    develop:
+      watch:
+        - action: sync
+          path: ./configs/promtail.yml
+          target: /etc/promtail/promtail-config.yml
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:main-ubuntu
+    user: ${GRAFANA_USER}
+    networks:
+      - grafana-monitoring
+      - proxy
+    volumes:
+    - ./data/grafana:/var/lib/grafana
+    restart: unless-stopped
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    restart: unless-stopped
+    ports:
+      - 8086:8086
+      - 8089:8089/udp
+    networks:
+      - grafana-monitoring
+    volumes:
+      - ./data/influxdb:/var/lib/influxdb2
+
+  telegraf:
+    container_name: telegraf
+    restart: unless-stopped
+    user: ${TELEGRAF_USER}
+    networks:
+      - grafana-monitoring
+    volumes:
+        - './configs/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
+        - '/:/hostfs:ro'                              # to monitor docker-vm
+        - '/var/run/docker.sock:/var/run/docker.sock' # to monitor docker containers
+        - './data/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
+    develop:
+      watch:
+        - action: sync
+          path: ./configs/telegraf.conf
+          target: /etc/telegraf/telegraf.conf
+    environment:
+        - HOST_ETC=/hostfs/etc
+        - HOST_PROC=/hostfs/proc
+        - HOST_SYS=/hostfs/sys
+        - HOST_VAR=/hostfs/var
+        - HOST_RUN=/hostfs/run
+        - HOST_MOUNT_PREFIX=/hostfs
+    image: telegraf:latest
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - 9090:9090
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    develop:
+      watch:
+        - action: sync
+          path: ./configs/prometheus.yml
+          target: /etc/prometheus/prometheus.yml
+    networks:
+      - grafana-monitoring
+
+networks:
+  grafana-monitoring:
+  proxy:
+    external: false
