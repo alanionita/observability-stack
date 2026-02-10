@@ -1,0 +1,24 @@
+# Version control
+.git/
+.gitignore
+
+# Dependencies (installed in container)
+
+# Build outputs (built in container)
+
+# Environment files
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+
+_docs/
+_docs/*
+
+# Deployment configs
+compose.yml
+
+# Non-essential configs (keep build configs)
+.env.*
