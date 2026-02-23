@@ -1,0 +1,71 @@
+// Targets
+// > Groups all of the *write components together
+
+loki.write "main" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+prometheus.remote_write "main" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// Metrics
+
+prometheus.exporter.cadvisor "main" {
+  docker_only = true
+}
+
+discovery.relabel "cadvisor_rename" {
+    targets = prometheus.exporter.cadvisor.main.targets
+
+    rule {
+        target_label = "job"
+        replacement  = "integrations/docker"
+    }
+
+    rule {
+        target_label = "instance"
+        replacement  = constants.hostname
+    }
+}
+
+prometheus.scrape "scraper" {
+  targets    = discovery.relabel.cadvisor_rename.output
+  forward_to = [ prometheus.remote_write.main.receiver ]
+
+
+  scrape_interval = "10s"
+}
+
+// Logging
+
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+      targets = []
+  
+      rule {
+          source_labels = ["__meta_docker_container_name"]
+          regex = "/(.*)"
+          target_label = "container_name"
+      }
+
+     rule {
+        target_label = "instance"
+        replacement  = constants.hostname
+    }
+
+  }
+
+loki.source.docker "main" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.linux.targets
+  relabel_rules = discovery.relabel.docker_logs.rules
+  forward_to = [loki.write.main.receiver]
+}
