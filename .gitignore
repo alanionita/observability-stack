@@ -15,5 +15,8 @@ data/promtail/**/**
 data/telegraf/*
 data/telegraf/**/**
 
+data/alloy/*
+data/alloy/**/**
+
 .env
 .env.*
