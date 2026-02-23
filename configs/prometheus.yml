@@ -9,3 +9,5 @@ global:
   label_name_length_limit: 200
   label_value_length_limit: 200
   # scrape_timeout is set to the global default (10s).
+remote_write:
+  - url: "http://telegraf:1234/receive"  # Point to Telegraf
