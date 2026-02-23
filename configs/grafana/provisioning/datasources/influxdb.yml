@@ -11,4 +11,4 @@ datasources:
       defaultBucket: ${INFLUX_BUCKET}
       tlsSkipVerify: true
     secureJsonData:
-      token: ${INFLUX_BUCKET}
+      token: ${INFLUXDB_ADMIN_TOKEN}
