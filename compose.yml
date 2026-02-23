@@ -35,6 +35,11 @@ services:
           target: /etc/prometheus/prometheus.yml
     networks:
       - grafana-monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   alloy: 
     container_name: alloy
@@ -115,6 +120,8 @@ services:
     depends_on: 
       influxdb:
         condition: service_healthy
+      prometheus:
+        condition: service_healthy
     image: grafana/grafana-oss:latest
     user: ${GRAFANA_DOCKER_USER}
     networks:
@@ -124,15 +131,20 @@ services:
      - 3000:3000/tcp
     volumes:
       - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./configs/grafana/dashboards-json:/var/lib/grafana/dashboards:ro
       - ./data/grafana:/var/lib/grafana
     develop:
       watch:
         - action: sync
           path: ./configs/grafana/provisioning/
           target: /etc/grafana/provisioning/
+        - action: sync
+          path: ./configs/grafana/dashboards-json
+          target: /var/lib/grafana/dashboards
     environment: 
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
+      GF_PROVISIONING_WAIT_TIMEOUT: 60
       INFLUX_URL: ${INFLUXDB_URL}
       INFLUX_BUCKET: ${INFLUXDB_BUCKET}
       INFLUX_ORG: ${INFLUXDB_ORG}
