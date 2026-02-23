@@ -4,7 +4,12 @@ datasources:
   - name: Loki
     type: loki
     access: proxy
+    orgId: 1
     url: ${LOKI_URL}
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
     jsonData:
       timeout: 60
       maxLines: 1000
