@@ -1,0 +1,1 @@
+curl -v -H "Authorization: Token $MY_TOKEN_GOES_HERE" http://localhost:8086/api/v2/buckets
