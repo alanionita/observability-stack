@@ -1,0 +1,6 @@
+groups:
+  - name: container_heartbeat
+    interval: 1m
+    rules:
+      - record: container_heartbeat:bpm
+        expr: (changes(container_last_seen{name=~".+"}[1m])>0)
