@@ -5,7 +5,14 @@ datasources:
     type: prometheus
     orgId: 1
     url: http://prometheus:9090
-    basicAuth: false
-    isDefault: true
-    version: 1
-    editable: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      allowAsRecordingRulesTarget: true
+      prometheusType: Prometheus
+      prometheusVersion: 3.3.0
+      cacheLevel: 'High'
+      disableRecordingRules: false
+      seriesEndpoint: false
+      timeInterval: 15s                    # Prometheus scrape interval
+      incrementalQueryOverlapWindow: 10m
