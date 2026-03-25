@@ -10,11 +10,6 @@ services:
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
-    develop:
-      watch:
-        - action: sync
-          path: ./configs/loki.yml
-          target: /etc/loki/local-config.yaml
     restart: unless-stopped
 
   prometheus:
@@ -24,15 +19,11 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/global.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/rules/:/etc/prometheus/rules/:ro
     command:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
-    develop:
-      watch:
-        - action: sync
-          path: ./configs/prometheus.yml
-          target: /etc/prometheus/prometheus.yml
     networks:
       - grafana-monitoring
     healthcheck:
@@ -58,14 +49,9 @@ services:
       - /dev/disk/:/dev/disk:ro
     ports:
       - "12345:12345"
-    develop:
-      watch:
-        - action: sync
-          path: ./configs/promtail.yml
-          target: /etc/promtail/promtail-config.yml
     restart: unless-stopped
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
-
+    # command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+  
   influxdb:
     container_name: influxdb
     image: influxdb:2.8.0      # Required: pined to prevent config drift v2.8
@@ -98,14 +84,12 @@ services:
     depends_on:
       influxdb:
         condition: service_healthy
+    ports:
+      - 8094:8094
+      - 9273:9273
     volumes:
       - './configs/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
       - './data/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
-    develop:
-      watch:
-        - action: sync
-          path: ./configs/telegraf.conf
-          target: /etc/telegraf/telegraf.conf
     environment:
       INFLUX_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
       INFLUX_BUCKET: ${INFLUXDB_BUCKET}
@@ -133,14 +117,6 @@ services:
       - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./configs/grafana/dashboards-json:/var/lib/grafana/dashboards:ro
       - ./data/grafana:/var/lib/grafana
-    develop:
-      watch:
-        - action: sync
-          path: ./configs/grafana/provisioning/
-          target: /etc/grafana/provisioning/
-        - action: sync
-          path: ./configs/grafana/dashboards-json
-          target: /var/lib/grafana/dashboards
     environment: 
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
