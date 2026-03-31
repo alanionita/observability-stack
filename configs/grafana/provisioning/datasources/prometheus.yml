@@ -14,5 +14,5 @@ datasources:
       cacheLevel: 'High'
       disableRecordingRules: false
       seriesEndpoint: false
-      timeInterval: 15s                    # Prometheus scrape interval
+      timeInterval: 15s                        # Prometheus scrape interval
       incrementalQueryOverlapWindow: 10m
