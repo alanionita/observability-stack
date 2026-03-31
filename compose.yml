@@ -16,14 +16,17 @@ services:
     image: prom/prometheus
     container_name: prometheus
     restart: unless-stopped
+    user: ${GRAFANA_DOCKER_USER}
     ports:
       - 9090:9090
     volumes:
       - ./configs/prometheus/global.yml:/etc/prometheus/prometheus.yml:ro
       - ./configs/prometheus/rules/:/etc/prometheus/rules/:ro
+      - ./data/prometheus:/prometheus/data
     command:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
+      # - --web.enable-admin-api            # Required to clear tombstone files
     networks:
       - grafana-monitoring
     healthcheck:
@@ -50,15 +53,17 @@ services:
     ports:
       - "12345:12345"
     restart: unless-stopped
-    # command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
-  
+    command: 
+      - run 
+      - --server.http.listen-addr=0.0.0.0:12345    # Required to access Alloy UI on http://localhost:12345/
+      - --storage.path=/var/lib/alloy/data 
+      - /etc/alloy/config.alloy
   influxdb:
     container_name: influxdb
     image: influxdb:2.8.0      # Required: pined to prevent config drift v2.8
     restart: unless-stopped
     ports:
       - 8086:8086
-      - 8089:8089/udp
     networks:
       - grafana-monitoring
     environment:
