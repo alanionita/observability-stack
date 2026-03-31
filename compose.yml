@@ -58,6 +58,25 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345    # Required to access Alloy UI on http://localhost:12345/
       - --storage.path=/var/lib/alloy/data 
       - /etc/alloy/config.alloy
+
+  mimir:
+    image: grafana/mimir-alpine
+    container_name: mimir
+    ports:
+      - "9009:9009"  # Mimir HTTP port
+    command:
+      - "-config.file=/etc/mimir/mimir.yaml"
+    volumes:
+      - ./configs/mimir-config.yml:/etc/mimir/mimir.yaml:ro
+      - ./data/mimir:/data:rw
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9009/ready"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+    networks:
+      - grafana-monitoring
+
   influxdb:
     container_name: influxdb
     image: influxdb:2.8.0      # Required: pined to prevent config drift v2.8
@@ -110,6 +129,8 @@ services:
       influxdb:
         condition: service_healthy
       prometheus:
+        condition: service_healthy
+      mimir:
         condition: service_healthy
     image: grafana/grafana-oss:latest
     user: ${GRAFANA_DOCKER_USER}

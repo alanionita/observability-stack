@@ -18,5 +18,8 @@ data/telegraf/**/**
 data/alloy/*
 data/alloy/**/**
 
+data/mimir/*
+data/mimir/**/**
+
 .env
 .env.*
