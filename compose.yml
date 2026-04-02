@@ -1,46 +1,12 @@
 services:
-  loki:
-    container_name: loki
-    image: grafana/loki:main
-    networks:
-      - grafana-monitoring
-    volumes:
-      - ./data/loki:/etc/loki
-      - ./configs/loki.yml:/etc/loki/local-config.yaml:ro
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    restart: unless-stopped
-    user: ${GRAFANA_DOCKER_USER}
-    ports:
-      - 9090:9090
-    volumes:
-      - ./configs/prometheus/global.yml:/etc/prometheus/prometheus.yml:ro
-      - ./configs/prometheus/rules/:/etc/prometheus/rules/:ro
-      - ./data/prometheus:/prometheus/data
-    command:
-      - --web.enable-remote-write-receiver
-      - --config.file=/etc/prometheus/prometheus.yml
-      # - --web.enable-admin-api            # Required to clear tombstone files
-    networks:
-      - grafana-monitoring
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   alloy: 
     container_name: alloy
     image: grafana/alloy:latest
-    privileged: true
+    restart: unless-stopped
     networks:
       - grafana-monitoring
+    ports:
+      - "12345:12345"
     volumes:
       - ./configs/config.alloy:/etc/alloy/config.alloy:ro
       - ./data/alloy:/var/lib/alloy/data
@@ -50,93 +16,79 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    ports:
-      - "12345:12345"
-    restart: unless-stopped
     command: 
       - run 
       - --server.http.listen-addr=0.0.0.0:12345    # Required to access Alloy UI on http://localhost:12345/
       - --storage.path=/var/lib/alloy/data 
       - /etc/alloy/config.alloy
 
+  loki:
+    container_name: loki
+    user: ${GRAFANA_DOCKER_USER}
+    image: grafana/loki:main
+    restart: unless-stopped
+    networks:
+      - grafana-monitoring
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./data/loki:/etc/loki
+      - ./configs/loki.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+
+  prometheus:
+    container_name: prometheus
+    user: ${GRAFANA_DOCKER_USER}
+    image: prom/prometheus
+    restart: unless-stopped
+    networks:
+      - grafana-monitoring
+    ports:
+      - 9090:9090
+    volumes:
+      - ./configs/prometheus/global.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/prometheus/rules/:/etc/prometheus/rules/:ro
+      - ./data/prometheus:/prometheus/data
+    command:
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+      # - --web.enable-admin-api    # Required to clear tombstone files
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   mimir:
-    image: grafana/mimir-alpine
     container_name: mimir
+    image: grafana/mimir-alpine
+    networks:
+      - grafana-monitoring
     ports:
       - "9009:9009"  # Mimir HTTP port
-    command:
-      - "-config.file=/etc/mimir/mimir.yaml"
     volumes:
       - ./configs/mimir-config.yml:/etc/mimir/mimir.yaml:ro
       - ./data/mimir:/data:rw
+    command:
+      - "-config.file=/etc/mimir/mimir.yaml"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9009/ready"]
       interval: 10s
       timeout: 30s
       retries: 5
-    networks:
-      - grafana-monitoring
-
-  influxdb:
-    container_name: influxdb
-    image: influxdb:2.8.0      # Required: pined to prevent config drift v2.8
-    restart: unless-stopped
-    ports:
-      - 8086:8086
-    networks:
-      - grafana-monitoring
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      # DOCKER_INFLUXDB_INIT_AUTH_ENABLED: true   # Required: in some builds auth is not auto-enforced
-      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER}
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASS}
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
-      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
-      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
-      DOCKER_INFLUXDB_INIT_RETENTION: 30d
-    volumes:
-      - ./data/influxdb:/var/lib/influxdb2
-    healthcheck:
-      test: ["CMD", "influx", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  telegraf:
-    container_name: telegraf
-    image: telegraf:latest
-    depends_on:
-      influxdb:
-        condition: service_healthy
-    ports:
-      - 8094:8094
-      - 9273:9273
-    volumes:
-      - './configs/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
-      - './data/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
-    environment:
-      INFLUX_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
-      INFLUX_BUCKET: ${INFLUXDB_BUCKET}
-      INFLUX_ORG: ${INFLUXDB_ORG}
-      INFLUX_URL: ${INFLUXDB_URL}
-    restart: unless-stopped
-    networks:
-      - grafana-monitoring
 
   grafana:
     container_name: grafana
+    user: ${GRAFANA_DOCKER_USER}
     depends_on: 
-      influxdb:
-        condition: service_healthy
       prometheus:
         condition: service_healthy
       mimir:
         condition: service_healthy
     image: grafana/grafana-oss:latest
-    user: ${GRAFANA_DOCKER_USER}
+    restart: unless-stopped
     networks:
       - grafana-monitoring
-      - proxy
     ports:
      - 3000:3000/tcp
     volumes:
@@ -147,14 +99,8 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
       GF_PROVISIONING_WAIT_TIMEOUT: 60
-      INFLUX_URL: ${INFLUXDB_URL}
-      INFLUX_BUCKET: ${INFLUXDB_BUCKET}
-      INFLUX_ORG: ${INFLUXDB_ORG}
-      INFLUX_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
       LOKI_URL: ${LOKI_URL}
-    restart: unless-stopped
 
 networks:
   grafana-monitoring:
-  proxy:
     external: false
