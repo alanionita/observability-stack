@@ -973,7 +973,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "cAdvisor Docker Insights [mimir]",
+  "title": "cAdvisor [long-term]",
   "uid": "ramt48d",
-  "version": 20
+  "version": 23
 }

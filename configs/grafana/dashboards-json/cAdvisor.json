@@ -917,7 +917,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "cAdvisor Docker Insights",
+  "title": "cAdvisor",
   "uid": "ae3c41d7-cea5-4cca-a918-5708706b4d1a",
-  "version": 9
+  "version": 10
 }
