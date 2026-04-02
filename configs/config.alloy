@@ -13,12 +13,6 @@ prometheus.remote_write "main" {
   }
 }
 
-prometheus.remote_write "telegraf" {
-  endpoint {
-    url = "http://telegraf:9273/metrics"
-  }
-}
-
 prometheus.remote_write "mimir" {
   endpoint {
     url = "http://mimir:9009/api/v1/push"
@@ -48,7 +42,7 @@ discovery.relabel "cadvisor_rename" {
 
 prometheus.scrape "scraper" {
   targets    = discovery.relabel.cadvisor_rename.output
-  forward_to = [ prometheus.remote_write.main.receiver, prometheus.remote_write.telegraf.receiver, prometheus.remote_write.mimir.receiver ]
+  forward_to = [ prometheus.remote_write.main.receiver, prometheus.remote_write.mimir.receiver ]
 
 
   scrape_interval = "15s"
