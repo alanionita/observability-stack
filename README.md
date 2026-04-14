@@ -1,6 +1,8 @@
 # Observability Stack [2026]
 
-Updated version of the observability stack from [James Turland](https://github.com/JamesTurland/JimsGarage/tree/main/Grafana-Monitoring).
+Forked version of the observability stack from [James Turland](https://github.com/JamesTurland/JimsGarage/tree/main/Grafana-Monitoring).
+
+Replaces Grafana Promtail with Alloy for Docker container monitoring and logs. Replaces InfluxDB and Telegraf, to focus on Prometheus and Mimir for monitoring data storage (short / long term) and alerts.
 
 Read [changelog](./_docs/CHANGELOG.md) for itemised changes.
 
