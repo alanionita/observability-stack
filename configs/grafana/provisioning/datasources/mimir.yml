@@ -9,5 +9,9 @@ datasources:
       httpMethod: POST
       prometheusType: Mimir
       cacheLevel: 'High'
-      timeInterval: 15s                        # Prometheus scrape interval
+      timeInterval: 15s     # Prometheus scrape interval
+      manageAlerts: false
+      disableRecordingRules: false
+      seriesEndpoint: false
+      incrementalQuery: true
       incrementalQueryOverlapWindow: 10m

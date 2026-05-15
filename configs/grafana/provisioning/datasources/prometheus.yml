@@ -8,11 +8,11 @@ datasources:
     jsonData:
       httpMethod: POST
       manageAlerts: true
-      allowAsRecordingRulesTarget: true
       prometheusType: Prometheus
       prometheusVersion: 3.3.0
       cacheLevel: 'High'
       disableRecordingRules: false
       seriesEndpoint: false
-      timeInterval: 15s                        # Prometheus scrape interval
+      timeInterval: 15s     # Prometheus scrape interval
+      incrementalQuery: true    # [beta] allows incremental queries, get the new results only and attach to cached results
       incrementalQueryOverlapWindow: 10m
